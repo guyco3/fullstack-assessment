@@ -1,11 +1,13 @@
-Hello Stackline team! here are my fixes
+# Stackline Full-Stack Assessment
+
+Hello Stackline team! Here is my full-stack assignment:
 
 ## 1. Individual Product Routing
 
 **Issue**: Product page was receiving entire product object as URL parameter instead of using the SKU to fetch from server.
 - Showing full data: Exposing full product data in URL
 - Poor UX: Extremely long, unreadable URLs
-- Not scalable: URL length grows linearlly with product data size
+- Not scalable: - URL length grows linearly with product data size
 
 **Fix**: Used Next.js dynamic routing with SKU parameter
 ```js
@@ -154,10 +156,8 @@ Applied same pattern to:
 
 **Approach Choice**: I chose defensive programming over data validation because:
 - Immediate fix that prevents crashes without touching the data layer
-- Graceful degradation - products still display even with missing images
 - Frontend should always handle incomplete data robustly
-- Allows time to implement proper data validation separately
-- Better user experience than hiding products entirely
+- Unclear spec on what intended behavior is in this case
 
 **Note**: Products that are missing key attributes probably shouldn't be displayed to the user. Instead, maybe there should be some cleanup batch job that happens, or some stricter validation when adding product to database.
 
@@ -182,10 +182,6 @@ module.exports = {
 
 **Approach Choice**: I chose to allowlist the domain over using unoptimized images because:
 - Maintains Next.js Image optimization benefits (WebP conversion, lazy loading, sizing)
-- More secure than disabling domain restrictions entirely
-- Amazon CDN is reliable and performant
-- Follows Next.js best practices for external images
-```
 
 ## 9. Missing Loading State on Product Pages
 
@@ -201,17 +197,14 @@ const [isLoading, setIsLoading] = useState(true);
 
 **Why**: Provides clear user feedback and prevents confusion between loading and error states.
 
-**Approach Choice**: I chose client-side loading state over converting to server components because:
+**Approach Choice**: I chose adding a loading state over converting to server components because:
 - Minimal change to existing architecture
-- Product pages need interactivity (image carousel) which requires client components anyway
-- Faster perceived performance - page shell loads immediately
-- Works well with existing API structure
-- Easier to maintain consistency with the rest of the application
+- Could have used Next.js built-in features for loading (adding a loading.tsx file in directory) but would have needed more architectural changes
 
 ## Additional Improvements
 
 ### Code Organization
-- **Extracted Pagination Component**: Moved pagination logic to `/components/ui/pagination.tsx` to reduce main page complexity and improve reusability
+- **Extracted Pagination Component**: Moved pagination logic to `/components/ui/pagination.tsx` to reduce main page complexity.
 
 ## Future Enhancements
 
@@ -219,15 +212,13 @@ const [isLoading, setIsLoading] = useState(true);
 - **Unit Tests**: Implement Jest testing for components, especially filter logic and pagination
 - **Component Documentation**: Add Storybook for visual component testing and design system documentation
 
-### Client side cachine
-- **client side caching** for better user exper
 ### Analytics & Monitoring
 - **User Behavior Tracking**: Track filter usage, search queries, and product views
-- **Performance Monitoring**: Add Core Web Vitals tracking for page load performance
-- **Error Reporting**: Implement error logging service (e.g., Sentry) for production monitoring
+- **Performance Monitoring**: Add feature to track page performance.
+- **Error Reporting**: Implement error logging service for production monitoring
 
 ### User Experience
-- **Infinite Scroll**: Alternative to pagination for mobile users
+- **Infinite Scroll**: Alternative to pagination for mobile users if seen as better
 - **Search Suggestions**: Autocomplete for search input with popular queries
 - **Filter Persistence**: Remember user filter preferences across sessions 
-- **client side caching**: Cache some product results for faster feeling website
+- **Client-side caching**: Cache individual product results for faster website performance
