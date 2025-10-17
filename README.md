@@ -7,7 +7,7 @@ Hello Stackline team! Here is my full-stack assignment:
 **Issue**: Product page was receiving entire product object as URL parameter instead of using the SKU to fetch from server.
 - Showing full data: Exposing full product data in URL
 - Poor UX: Extremely long, unreadable URLs
-- Not scalable: - URL length grows linearly with product data size
+- Not scalable: URL length grows linearly with product data size
 
 **Fix**: Used Next.js dynamic routing with SKU parameter
 ```js
@@ -29,9 +29,7 @@ useEffect(() => {
 
 **Approach Choice**: I chose Next.js dynamic routing over query parameters because:
 - The folder structure already had `[sku]` indicating this was the intended approach
-- RESTful URL design is more SEO-friendly and user-friendly
 - Eliminates security risk of exposing entire product data in URLs
-- Scales better as product data grows in size
 
 ## 2. Subcategory API Query
 
@@ -209,8 +207,12 @@ const [isLoading, setIsLoading] = useState(true);
 ## Future Enhancements
 
 ### Testing
-- **Unit Tests**: Implement Jest testing for components, especially filter logic and pagination
+- **Unit Tests**: Implement Jest testing for components, especially filter logic and pagination. Also implement unit tests for api routes.
 - **Component Documentation**: Add Storybook for visual component testing and design system documentation
+
+### Code Quality
+- **Documentation**: Add docstrings to services in lib
+- **Type Safety**: Strengthen TypeScript types and add runtime validation
 
 ### Analytics & Monitoring
 - **User Behavior Tracking**: Track filter usage, search queries, and product views

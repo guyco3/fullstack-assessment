@@ -43,7 +43,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [totalProducts, setTotalProducts] = useState(0);
   
-  // Initialize state from URL parameters
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
     searchParams.get("category") || undefined
@@ -58,7 +57,6 @@ export default function Home() {
   const itemsPerPage = parseInt(searchParams.get("limit") || "20");
   const offset = (currentPage - 1) * itemsPerPage;
 
-  // Function to update URL with current filter state
   const updateURL = (
     newSearch?: string | null, 
     newCategory?: string | null, 
@@ -67,7 +65,6 @@ export default function Home() {
   ) => {
     const params = new URLSearchParams();
     
-    // Use null to explicitly clear a parameter, undefined to keep current value
     const finalSearch = newSearch !== undefined ? (newSearch || "") : search;
     const finalCategory = newCategory !== undefined ? (newCategory || undefined) : selectedCategory;
     const finalSubCategory = newSubCategory !== undefined ? (newSubCategory || undefined) : selectedSubCategory;
@@ -89,7 +86,6 @@ export default function Home() {
       .then((data) => {
         setCategories(data.categories);
         
-        // Clear invalid category selection if it doesn't exist in API data
         if (selectedCategory && !data.categories.includes(selectedCategory)) {
           setSelectedCategory(undefined);
           setSelectedSubCategory(undefined);
@@ -105,7 +101,6 @@ export default function Home() {
         .then((data) => {
           setSubCategories(data.subCategories);
           
-          // Clear invalid subcategory selection if it doesn't exist in API data
           if (selectedSubCategory && !data.subCategories.includes(selectedSubCategory)) {
             setSelectedSubCategory(undefined);
             updateURL(search, selectedCategory, null, 1);
