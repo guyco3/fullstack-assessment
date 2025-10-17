@@ -1,6 +1,16 @@
 # Stackline Full-Stack Assessment
 
-Hello Stackline team! Here is my full-stack assignment:
+Hello Stackline team! Here is my full-stack assignment. 
+
+## My Process
+I started by manually testing the site to identify issues:
+1. **Manual Testing**: Tried every feature and noted unexpected behavior
+2. **Network Analysis**: Monitored the Network tab and noticed the API was using pagination but users had no way to interact with it. In addition, the endpoint to get an individual product was passing the entire product object in the query
+3. **URL Inspection**: Found that filter parameters weren't being set in the URL when updated
+4. **Code Analysis**: Dove into the codebase to understand the repo structure and trace the issues from API calls through to the UI, including state management issues and runtime errors
+5. **Secondary Issues**: Once I fixed the pagination and could view all products, I discovered additional issues with products missing attributes which were throwing errors, plus image configuration problems
+
+Once I understood the main problems, I systematically fixed each issue.
 
 ## 1. Individual Product Routing
 
