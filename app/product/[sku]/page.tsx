@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,21 +20,19 @@ interface Product {
 }
 
 export default function ProductPage() {
-  const searchParams = useSearchParams();
-  const productParam = searchParams.get('product');
+  const params = useParams();
+  const sku = String(params.sku);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
 
   useEffect(() => {
-    if (productParam) {
-      try {
-        const parsedProduct = JSON.parse(productParam);
-        setProduct(parsedProduct);
-      } catch (error) {
-        console.error('Failed to parse product data:', error);
-      }
+    if (sku) {
+      fetch(`/api/products/${sku}`)
+        .then((res) => res.json())
+        .then((data) => setProduct(data))
+        .catch((error) => console.error('Failed to fetch product data:', error));
     }
-  }, [productParam]);
+  }, [sku]);
 
   if (!product) {
     return (
@@ -69,7 +67,7 @@ export default function ProductPage() {
             <Card className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="relative h-96 w-full bg-muted">
-                  {product.imageUrls[selectedImage] && (
+                  {product.imageUrls && product.imageUrls[selectedImage] && (
                     <Image
                       src={product.imageUrls[selectedImage]}
                       alt={product.title}
@@ -83,7 +81,7 @@ export default function ProductPage() {
               </CardContent>
             </Card>
 
-            {product.imageUrls.length > 1 && (
+            {product.imageUrls && product.imageUrls.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
                 {product.imageUrls.map((url, idx) => (
                   <button
@@ -116,7 +114,7 @@ export default function ProductPage() {
               <p className="text-sm text-muted-foreground">SKU: {product.retailerSku}</p>
             </div>
 
-            {product.featureBullets.length > 0 && (
+            {product.featureBullets && product.featureBullets.length > 0 && (
               <Card>
                 <CardContent className="pt-6">
                   <h2 className="text-lg font-semibold mb-3">Features</h2>

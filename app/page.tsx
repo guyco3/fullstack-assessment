@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,7 @@ import {
 import { Search } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { Pagination } from "@/components/ui/pagination";
 
 interface Product {
   stacklineSku: string;
@@ -32,32 +34,83 @@ interface Product {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [subCategories, setSubCategories] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [totalProducts, setTotalProducts] = useState(0);
+  
+  // Initialize state from URL parameters
+  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
-    undefined
+    searchParams.get("category") || undefined
   );
   const [selectedSubCategory, setSelectedSubCategory] = useState<
     string | undefined
-  >(undefined);
-  const [loading, setLoading] = useState(true);
+  >(searchParams.get("subcategory") || undefined);
+  const [currentPage, setCurrentPage] = useState(
+    parseInt(searchParams.get("page") || "1")
+  );
+  
+  const itemsPerPage = parseInt(searchParams.get("limit") || "20");
+  const offset = (currentPage - 1) * itemsPerPage;
+
+  // Function to update URL with current filter state
+  const updateURL = (newSearch?: string, newCategory?: string, newSubCategory?: string, newPage?: number) => {
+    const params = new URLSearchParams();
+    
+    const finalSearch = newSearch !== undefined ? newSearch : search;
+    const finalCategory = newCategory !== undefined ? newCategory : selectedCategory;
+    const finalSubCategory = newSubCategory !== undefined ? newSubCategory : selectedSubCategory;
+    const finalPage = newPage !== undefined ? newPage : currentPage;
+    
+    if (finalSearch) params.set("search", finalSearch);
+    if (finalCategory) params.set("category", finalCategory);
+    if (finalSubCategory) params.set("subcategory", finalSubCategory);
+    if (finalPage > 1) params.set("page", finalPage.toString());
+    if (itemsPerPage !== 20) params.set("limit", itemsPerPage.toString());
+    
+    const newURL = params.toString() ? `/?${params.toString()}` : "/";
+    router.push(newURL, { scroll: false });
+  };
 
   useEffect(() => {
     fetch("/api/categories")
       .then((res) => res.json())
-      .then((data) => setCategories(data.categories));
+      .then((data) => {
+        setCategories(data.categories);
+        
+        // Clear invalid category selection if it doesn't exist in API data
+        if (selectedCategory && !data.categories.includes(selectedCategory)) {
+          setSelectedCategory(undefined);
+          setSelectedSubCategory(undefined);
+          updateURL(search, undefined, undefined, 1);
+        }
+      });
   }, []);
 
   useEffect(() => {
     if (selectedCategory) {
-      fetch(`/api/subcategories`)
+      fetch(`/api/subcategories?category=${encodeURIComponent(selectedCategory)}`)
         .then((res) => res.json())
-        .then((data) => setSubCategories(data.subCategories));
+        .then((data) => {
+          setSubCategories(data.subCategories);
+          
+          // Clear invalid subcategory selection if it doesn't exist in API data
+          if (selectedSubCategory && !data.subCategories.includes(selectedSubCategory)) {
+            setSelectedSubCategory(undefined);
+            updateURL(search, selectedCategory, undefined, 1);
+          }
+        });
     } else {
       setSubCategories([]);
-      setSelectedSubCategory(undefined);
+      if (selectedSubCategory) {
+        setSelectedSubCategory(undefined);
+        updateURL(search, selectedCategory, undefined, 1);
+      }
     }
   }, [selectedCategory]);
 
@@ -67,15 +120,23 @@ export default function Home() {
     if (search) params.append("search", search);
     if (selectedCategory) params.append("category", selectedCategory);
     if (selectedSubCategory) params.append("subCategory", selectedSubCategory);
-    params.append("limit", "20");
+    params.append("limit", itemsPerPage.toString());
+    params.append("offset", offset.toString());
 
     fetch(`/api/products?${params}`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(data.products);
+        setTotalProducts(data.total);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching products:", error);
         setLoading(false);
       });
-  }, [search, selectedCategory, selectedSubCategory]);
+  }, [search, selectedCategory, selectedSubCategory, currentPage, offset]);
+
+  const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
   return (
     <div className="min-h-screen bg-background">
@@ -89,19 +150,36 @@ export default function Home() {
               <Input
                 placeholder="Search products..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  const newSearch = e.target.value;
+                  setSearch(newSearch);
+                  setCurrentPage(1);
+                  updateURL(newSearch, selectedCategory, selectedSubCategory, 1);
+                }}
                 className="pl-10"
               />
             </div>
 
             <Select
               value={selectedCategory}
-              onValueChange={(value) => setSelectedCategory(value || undefined)}
+              onValueChange={(value) => {
+                const newCategory = value || undefined;
+                setSelectedCategory(newCategory);
+                setSelectedSubCategory(undefined);
+                setCurrentPage(1);
+                updateURL(search, newCategory, undefined, 1);
+              }}
             >
               <SelectTrigger className="w-full md:w-[200px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
+                {/* Show selected category immediately if not in loaded list yet */}
+                {selectedCategory && !categories.includes(selectedCategory) && (
+                  <SelectItem key={`selected-${selectedCategory}`} value={selectedCategory}>
+                    {selectedCategory}
+                  </SelectItem>
+                )}
                 {categories.map((cat) => (
                   <SelectItem key={cat} value={cat}>
                     {cat}
@@ -113,14 +191,23 @@ export default function Home() {
             {selectedCategory && subCategories.length > 0 && (
               <Select
                 value={selectedSubCategory}
-                onValueChange={(value) =>
-                  setSelectedSubCategory(value || undefined)
-                }
+                onValueChange={(value) => {
+                  const newSubCategory = value || undefined;
+                  setSelectedSubCategory(newSubCategory);
+                  setCurrentPage(1);
+                  updateURL(search, selectedCategory, newSubCategory, 1);
+                }}
               >
                 <SelectTrigger className="w-full md:w-[200px]">
                   <SelectValue placeholder="All Subcategories" />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* Show selected subcategory immediately if not in loaded list yet */}
+                  {selectedSubCategory && !subCategories.includes(selectedSubCategory) && (
+                    <SelectItem key={`selected-${selectedSubCategory}`} value={selectedSubCategory}>
+                      {selectedSubCategory}
+                    </SelectItem>
+                  )}
                   {subCategories.map((subCat) => (
                     <SelectItem key={subCat} value={subCat}>
                       {subCat}
@@ -137,6 +224,8 @@ export default function Home() {
                   setSearch("");
                   setSelectedCategory(undefined);
                   setSelectedSubCategory(undefined);
+                  setCurrentPage(1);
+                  updateURL("", undefined, undefined, 1);
                 }}
               >
                 Clear Filters
@@ -157,22 +246,31 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <p className="text-sm text-muted-foreground mb-4">
-              Showing {products.length} products
-            </p>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalProducts}
+              itemsOnCurrentPage={products.length}
+              onPageChange={(page: number) => {
+                setCurrentPage(page);
+                updateURL(search, selectedCategory, selectedSubCategory, page);
+              }}
+              itemName="products"
+              loading={loading}
+              className="mb-4"
+            />
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => (
                 <Link
                   key={product.stacklineSku}
-                  href={{
-                    pathname: "/product",
-                    query: { product: JSON.stringify(product) },
-                  }}
+                  href={`/product/${product.stacklineSku}`}
                 >
                   <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                     <CardHeader className="p-0">
                       <div className="relative h-48 w-full overflow-hidden rounded-t-lg bg-muted">
-                        {product.imageUrls[0] && (
+                        {product.imageUrls && product.imageUrls[0] && (
                           <Image
                             src={product.imageUrls[0]}
                             alt={product.title}
