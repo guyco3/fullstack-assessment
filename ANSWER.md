@@ -89,7 +89,11 @@ in indivual product
 
 note that this should have prpbably never have been displayed. Maybe instead the frontend should send a message or log the products that don't have improtant keys
 
-6. other 
+6. clear fitlers doens't clear category. no way for user to see all categories again ):
+
+fix, have clear filters clear catesgoes also
+
+7. other 
 
 while fixing pagianition, I was getting this error
 ntime Error

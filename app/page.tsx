@@ -59,12 +59,18 @@ export default function Home() {
   const offset = (currentPage - 1) * itemsPerPage;
 
   // Function to update URL with current filter state
-  const updateURL = (newSearch?: string, newCategory?: string, newSubCategory?: string, newPage?: number) => {
+  const updateURL = (
+    newSearch?: string | null, 
+    newCategory?: string | null, 
+    newSubCategory?: string | null, 
+    newPage?: number
+  ) => {
     const params = new URLSearchParams();
     
-    const finalSearch = newSearch !== undefined ? newSearch : search;
-    const finalCategory = newCategory !== undefined ? newCategory : selectedCategory;
-    const finalSubCategory = newSubCategory !== undefined ? newSubCategory : selectedSubCategory;
+    // Use null to explicitly clear a parameter, undefined to keep current value
+    const finalSearch = newSearch !== undefined ? (newSearch || "") : search;
+    const finalCategory = newCategory !== undefined ? (newCategory || undefined) : selectedCategory;
+    const finalSubCategory = newSubCategory !== undefined ? (newSubCategory || undefined) : selectedSubCategory;
     const finalPage = newPage !== undefined ? newPage : currentPage;
     
     if (finalSearch) params.set("search", finalSearch);
@@ -87,7 +93,7 @@ export default function Home() {
         if (selectedCategory && !data.categories.includes(selectedCategory)) {
           setSelectedCategory(undefined);
           setSelectedSubCategory(undefined);
-          updateURL(search, undefined, undefined, 1);
+          updateURL(search, null, null, 1);
         }
       });
   }, []);
@@ -102,14 +108,14 @@ export default function Home() {
           // Clear invalid subcategory selection if it doesn't exist in API data
           if (selectedSubCategory && !data.subCategories.includes(selectedSubCategory)) {
             setSelectedSubCategory(undefined);
-            updateURL(search, selectedCategory, undefined, 1);
+            updateURL(search, selectedCategory, null, 1);
           }
         });
     } else {
       setSubCategories([]);
       if (selectedSubCategory) {
         setSelectedSubCategory(undefined);
-        updateURL(search, selectedCategory, undefined, 1);
+        updateURL(search, selectedCategory, null, 1);
       }
     }
   }, [selectedCategory]);
@@ -161,25 +167,19 @@ export default function Home() {
             </div>
 
             <Select
-              value={selectedCategory}
+              value={selectedCategory || ""}
               onValueChange={(value) => {
                 const newCategory = value || undefined;
                 setSelectedCategory(newCategory);
                 setSelectedSubCategory(undefined);
                 setCurrentPage(1);
-                updateURL(search, newCategory, undefined, 1);
+                updateURL(search, newCategory, null, 1);
               }}
             >
               <SelectTrigger className="w-full md:w-[200px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                {/* Show selected category immediately if not in loaded list yet */}
-                {selectedCategory && !categories.includes(selectedCategory) && (
-                  <SelectItem key={`selected-${selectedCategory}`} value={selectedCategory}>
-                    {selectedCategory}
-                  </SelectItem>
-                )}
                 {categories.map((cat) => (
                   <SelectItem key={cat} value={cat}>
                     {cat}
@@ -202,12 +202,6 @@ export default function Home() {
                   <SelectValue placeholder="All Subcategories" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Show selected subcategory immediately if not in loaded list yet */}
-                  {selectedSubCategory && !subCategories.includes(selectedSubCategory) && (
-                    <SelectItem key={`selected-${selectedSubCategory}`} value={selectedSubCategory}>
-                      {selectedSubCategory}
-                    </SelectItem>
-                  )}
                   {subCategories.map((subCat) => (
                     <SelectItem key={subCat} value={subCat}>
                       {subCat}
@@ -225,7 +219,7 @@ export default function Home() {
                   setSelectedCategory(undefined);
                   setSelectedSubCategory(undefined);
                   setCurrentPage(1);
-                  updateURL("", undefined, undefined, 1);
+                  updateURL("", null, null, 1);
                 }}
               >
                 Clear Filters
