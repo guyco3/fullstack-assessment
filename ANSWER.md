@@ -93,7 +93,10 @@ note that this should have prpbably never have been displayed. Maybe instead the
 
 fix, have clear filters clear catesgoes also
 
-7. other 
+7. select didn't clear
+
+category didnt clear after clear filters clicked. From what I've searched, RadixUI doesn't correctly process udnefined,isntaed should pass "" for no selection
+8. other 
 
 while fixing pagianition, I was getting this error
 ntime Error
