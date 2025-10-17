@@ -1,111 +1,156 @@
-1. Fix getting individual product
+## 1. Individual Product Routing
 
-before parsing entire object and not using product id and search param of nextjs feature. (sku)
-This forced us to pass entire object in param. Possibly open attack vectors since json got parsed
+**Issue**: Product page was receiving entire product object as URL parameter instead of using the SKU.
+- Security risk: Exposing full product data in URL
+- Poor UX: Extremely long, unreadable URLs
+- Not scalable: URL length grows with product data size
 
-Starter code had [sku] already so probably waht they wanted. However, different ways to do this, (maybe unqiue name url to make it more readable like what kohls and amazon does)
-
-fixed by using nextjs dynamic routing, and just using product sku to render. This makes url much more readable and if object is really large will not scale constant in respect to object size
-
-after 
+**Fix**: Used Next.js dynamic routing with SKU parameter
 ```js
-  const params = useParams();
-  const sku = String(params.sku);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [selectedImage, setSelectedImage] = useState(0);
+// Before: /product?data={entire-product-object}
+// After: /product/ABC123
 
-  useEffect(() => {
-    if (sku) {
-      fetch(`/api/products/${sku}`)
-        .then((res) => res.json())
-        .then((data) => setProduct(data))
-        .catch((error) => console.error('Failed to fetch product data:', error));
-    }
-  }, [sku]);
+const params = useParams();
+const sku = String(params.sku);
+const [product, setProduct] = useState<Product | null>(null);
 
-  ...
-    <Link
-        key={product.stacklineSku}
-        href={`/product/${product.stacklineSku}`}
-    >
+useEffect(() => {
+  fetch(`/api/products/${sku}`)
+    .then((res) => res.json())
+    .then((data) => setProduct(data));
+}, [sku]);
 ```
 
-2. categoriy fix
+**Why**: Clean URLs, better security, leverages existing API endpoint structure.
 
-app not correctly querying sub-category api endpooint, missing the category
+## 2. Subcategory API Query
 
-fix was to add the categroy tot he sub-cateorgy endpint
+**Issue**: Subcategory dropdown wasn't filtering by selected category - showing all subcategories instead of relevant ones.
 
-before
+**Fix**: Include category parameter in subcategory API call
 ```js
+// Before
 fetch(`/api/subcategories`)
+
+// After  
+fetch(`/api/subcategories?category=${encodeURIComponent(selectedCategory)}`)
 ```
 
-after
+**Why**: Subcategories should only show options relevant to the selected category.
+## 3. Select Component Clear Issue
+
+**Issue**: Radix UI Select components didn't visually clear when filters were reset - still showed previous selection.
+
+**Fix**: Use empty string instead of undefined for "no selection" state
 ```js
-fetch(`/api/subcategories/${selectedCategory}`)
+// Before
+<Select value={selectedCategory}>
+
+// After
+<Select value={selectedCategory || ""}>
 ```
 
-3. missig url parameters
+**Why**: Radix UI doesn't properly handle `undefined` values but correctly clears display with empty strings.
 
-right now, when a user applies a category or subcaterogy its not reflected in the url. ALso limit and offset not in url. This casues bookmark issues and also some SEO problems and harder to track metrics (something stackline needs)
 
-fix: add params and logic for rednding and prefilling filters + paginaition data on params
+## 4. URL State Management
 
-4. missing pagination controls
+**Issue**: Filter selections and pagination weren't reflected in URL parameters.
+- Users couldn't bookmark filtered results
+- Browser back/forward buttons didn't work
+- Poor SEO and analytics tracking
 
-no way for user to load next window of data, they get stuck witht he first window. Not good since users cant see everything
-
-fix: add a paginiation controls
-
-5. safety checks, no image
- 
-intiall check was product.imageUrls[0] exists, hwover, if the array doesn't exist
-then it will raise an error. Instead i think the implied bejavior is to igrnore produts who dont have an image. thus fix is to change boolean expression to
-
+**Fix**: Sync all filters and pagination with URL parameters
 ```js
-product.imageUrls && product.imageUrls[0] && 
+const updateURL = (newSearch, newCategory, newSubCategory, newPage) => {
+  const params = new URLSearchParams();
+  if (newSearch) params.set("search", newSearch);
+  if (newCategory) params.set("category", newCategory);
+  if (newSubCategory) params.set("subcategory", newSubCategory);
+  if (newPage > 1) params.set("page", newPage.toString());
+  
+  router.push(`/?${params.toString()}`);
+};
 ```
 
-for listing page
+**Why**: Enables bookmarking, proper browser navigation, and better user experience.
 
-and 
+## 5. Missing Pagination
 
+**Issue**: Users could only see the first 20 products with no way to navigate to additional results.
+
+**Fix**: Added pagination component with page controls
+```jsx
+<Pagination
+  currentPage={currentPage}
+  totalPages={totalPages}
+  onPageChange={(page) => {
+    setCurrentPage(page);
+    updateURL(search, selectedCategory, selectedSubCategory, page);
+  }}
+/>
+```
+
+**Why**: Essential for browsing large product catalogs - users need access to all products.
+
+## 6. Image Safety Checks
+
+**Issue**: App crashed when products had missing or empty `imageUrls` arrays.
+
+**Fix**: Added proper null/undefined checks before accessing image arrays
 ```js
-product.imageUrls && product.imageUrls[selectedImage]
+// Before
+{product.imageUrls[0] && (
+  <Image src={product.imageUrls[0]} />
+)}
 
-...
-
-product.imageUrls && product.imageUrls.length > 1 
-
-...
-
-product.featureBullets && product.featureBullets.length > 0
-
+// After
+{product.imageUrls && product.imageUrls[0] && (
+  <Image src={product.imageUrls[0]} />
+)}
 ```
 
-in indivual product 
+Applied same pattern to:
+- Image carousel navigation
+- Feature bullets display
+- Product image gallery
 
+**Why**: Prevents runtime errors when product data is incomplete.
 
-note that this should have prpbably never have been displayed. Maybe instead the frontend should send a message or log the products that don't have improtant keys
+## 7. Incomplete Filter Clearing
 
-6. clear fitlers doens't clear category. no way for user to see all categories again ):
+**Issue**: "Clear Filters" button only cleared search input, not category/subcategory selections.
 
-fix, have clear filters clear catesgoes also
+**Fix**: Reset all filter states when clearing
+```js
+<Button onClick={() => {
+  setSearch("");
+  setSelectedCategory(undefined);
+  setSelectedSubCategory(undefined);
+  setCurrentPage(1);
+  updateURL("", null, null, 1);
+}}>
+  Clear Filters
+</Button>
+```
 
-7. select didn't clear
+**Why**: Users expect "Clear Filters" to reset ALL filters, not just search.
 
-category didnt clear after clear filters clicked. From what I've searched, RadixUI doesn't correctly process udnefined,isntaed should pass "" for no selection
-8. other 
+## 8. Image Hostname Configuration
 
-while fixing pagianition, I was getting this error
-ntime Error
+**Issue**: Next.js blocked external Amazon image URLs, causing image loading failures.
 
-Invalid src prop (https://images-na.ssl-images-amazon.com/images/I/81ZSuzkKKHL._AC_SL1500_.jpg) on next/image, hostname "images-na.ssl-images-amazon.com" is not configured under images in your next.config.js
-See more info: https://nextjs.org/docs/messages/next-image-unconfigured-host
+**Error**: `Invalid src prop, hostname "images-na.ssl-images-amazon.com" is not configured`
 
-Call Stack
-18
+**Fix**: Added Amazon image domains to Next.js config
+```js
+// next.config.ts
+module.exports = {
+  images: {
+    ...
+    domains: ['images-na.ssl-images-amazon.com']
+  }
+}
+```
 
-this was because enxtjs was blocking exertnal image hostname of 'images-na.ssl-images-amazon.com',
-thus i added it to the next.config.ts
+**Why**: Next.js requires explicit allowlisting of external image domains for security.
