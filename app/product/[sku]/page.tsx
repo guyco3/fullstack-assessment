@@ -24,15 +24,42 @@ export default function ProductPage() {
   const sku = String(params.sku);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  
 
   useEffect(() => {
     if (sku) {
+      setIsLoading(true);
       fetch(`/api/products/${sku}`)
         .then((res) => res.json())
-        .then((data) => setProduct(data))
-        .catch((error) => console.error('Failed to fetch product data:', error));
+        .then((data) => {
+          setProduct(data);
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch product data:', error);
+          setIsLoading(false);
+        });
     }
   }, [sku]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <Link href="/">
+            <Button variant="ghost" className="mb-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Products
+            </Button>
+          </Link>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Loading product details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

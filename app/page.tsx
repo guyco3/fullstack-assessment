@@ -190,7 +190,7 @@ export default function Home() {
 
             {selectedCategory && subCategories.length > 0 && (
               <Select
-                value={selectedSubCategory}
+                value={selectedSubCategory || ""}
                 onValueChange={(value) => {
                   const newSubCategory = value || undefined;
                   setSelectedSubCategory(newSubCategory);
